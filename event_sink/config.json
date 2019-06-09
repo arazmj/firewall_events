@@ -1,0 +1,12 @@
+{
+  "Brokers": ["localhost:9092"],
+  "Version": "2.1.1",
+  "Group": "cgroup2",
+  "Topics": "test",
+  "Oldest": true,
+  "Verbose": false,
+  "SaslUser": "",
+  "SaslPassword": "",
+  "SaslEnable": false,
+  "SaslHandshake": true
+}

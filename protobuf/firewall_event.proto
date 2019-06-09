@@ -1,0 +1,19 @@
+syntax = "proto3";
+package tutorial;
+
+import "google/protobuf/timestamp.proto";
+
+message Event {
+    fixed32 src_ip_addr = 1;
+
+    fixed32 dst_ip_addr = 2;
+
+    uint32 src_port = 3;
+    uint32 dst_port = 4;
+
+    google.protobuf.Timestamp last_updated = 5;
+
+    int32 device_id = 6;
+    int32 action = 7;
+    int32 acl_rule_id = 8;
+}

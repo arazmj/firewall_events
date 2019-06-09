@@ -1,0 +1,5 @@
+{
+  "BrokerList": ["localhost:9092"],
+  "Topic": "test",
+  "MaxRetry":5
+}
