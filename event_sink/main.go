@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"firewall_events/protobuf"
 	"github.com/Shopify/sarama"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/tkanos/gonfig"
 	"log"
 	"os"
@@ -28,6 +30,10 @@ type Configuration struct {
 	SaslHandshake bool;
 }
 
+var (
+	jsonConfig = Configuration{}
+)
+
 func init() {
 
 }
@@ -35,7 +41,6 @@ func init() {
 func main() {
 	log.Println("Starting a Firewall event consumer")
 
-	jsonConfig := Configuration{}
 	err := gonfig.GetConf("config.json", &jsonConfig)
 	if err != nil {
 		panic(err)
@@ -125,11 +130,24 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		event := ExchangeMessage.Event{}
 		err := proto.Unmarshal(message.Value, &event)
 		if err != nil {
-			log.Fatal("unmarshaling error: ", err)
+			log.Fatal("Unmarshaling error: ", err)
 		}
-		log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s",
-			string(message.Value), message.Timestamp, message.Topic)
-		log.Printf("Port %d %d", event.SrcPort, event.DstPort)
+
+		srcIp := make([]byte, 4)
+		binary.LittleEndian.PutUint32(srcIp, event.SrcIpAddr)
+
+		dstIp := make([]byte, 4)
+		binary.LittleEndian.PutUint32(dstIp, event.DstIpAddr)
+
+		if jsonConfig.Verbose {
+			log.Printf("Src IP: %d.%d.%d.%d, Dst IP: %d.%d.%d.%d Src Port: %d, Dst Port: %d",
+				srcIp[0], srcIp[1], srcIp[2], srcIp[3],
+				dstIp[0], dstIp[1], dstIp[2], dstIp[3],
+				event.SrcPort, event.DstPort)
+			log.Printf("Rule ID: %d, Last Update: %s, Device ID: %d, Action ID: %d",
+				event.AclRuleId, ptypes.TimestampString(event.LastUpdated), event.DeviceId, event.Action)
+		}
+
 		session.MarkMessage(message, "")
 	}
 

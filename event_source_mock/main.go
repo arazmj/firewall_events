@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/tkanos/gonfig"
+	"math/rand"
+	"time"
 )
 
 type Configuration struct {
@@ -15,15 +18,6 @@ type Configuration struct {
 }
 
 func main() {
-	event := ExchangeMessage.Event{
-		DstIpAddr: 192 << 24 + 168 << 16 + 0 <<  8 + 1,
-		SrcIpAddr: 127 << 24 +   0 << 16 + 0 <<  8 + 1,
-		DstPort: 80,
-		SrcPort: 112,
-	}
-	fmt.Println(event);
-	out, _ := proto.Marshal(&event);
-	fmt.Println(out);
 
 	configuration := Configuration{}
 	err := gonfig.GetConf("config.json", &configuration)
@@ -44,13 +38,31 @@ func main() {
 			panic(err)
 		}
 	}()
-	msg := &sarama.ProducerMessage{
-		Topic: configuration.Topic,
-		Value: sarama.StringEncoder(out),
+
+	for true {
+		event := ExchangeMessage.Event{
+			DstIpAddr: rand.Uint32(),
+			SrcIpAddr: rand.Uint32(),
+			DstPort:   rand.Uint32() % 65535,
+			SrcPort:   rand.Uint32() % 65535,
+			DeviceId:  rand.Uint32(),
+			Action: rand.Uint32() % 10,
+			LastUpdated: ptypes.TimestampNow(),
+			AclRuleId: rand.Uint32() % 4,
+		}
+
+		fmt.Println(event);
+		out, _ := proto.Marshal(&event);
+		fmt.Println(out);
+		msg := &sarama.ProducerMessage{
+			Topic: configuration.Topic,
+			Value: sarama.StringEncoder(out),
+		}
+		partition, offset, err := producer.SendMessage(msg)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Message is stored in topic(%s)/partition(%d)/offset(%d)\n", configuration.Topic, partition, offset)
+		time.Sleep(1 * time.Second)
 	}
-	partition, offset, err := producer.SendMessage(msg)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Message is stored in topic(%s)/partition(%d)/offset(%d)\n", configuration.Topic, partition, offset)
 }

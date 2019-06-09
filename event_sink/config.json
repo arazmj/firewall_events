@@ -4,7 +4,7 @@
   "Group": "cgroup2",
   "Topics": "test",
   "Oldest": true,
-  "Verbose": false,
+  "Verbose": true,
   "SaslUser": "",
   "SaslPassword": "",
   "SaslEnable": false,

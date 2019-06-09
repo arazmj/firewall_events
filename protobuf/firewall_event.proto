@@ -1,5 +1,5 @@
 syntax = "proto3";
-package tutorial;
+package ExchangeMessage;
 
 import "google/protobuf/timestamp.proto";
 
@@ -13,7 +13,7 @@ message Event {
 
     google.protobuf.Timestamp last_updated = 5;
 
-    int32 device_id = 6;
-    int32 action = 7;
-    int32 acl_rule_id = 8;
+    uint32 device_id = 6;
+    uint32 action = 7;
+    uint32 acl_rule_id = 8;
 }
