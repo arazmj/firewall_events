@@ -5,7 +5,9 @@ Third set configurations are going to be Cassandra table schema, it will  have s
 
 ###The KCL to create table in Cassandra
 ```
-CREATE TABLE fw_events(event_id uuid PRIMARY KEY, SrcIpAddr text, DstIpAddr text, SrcPort int, DstPort int, LastUpdated timestamp, DeviceId int, Action int, AclRuleId int);
+CREATE TABLE fw_events(event_id uuid PRIMARY KEY, SrcIpAddr text, 
+DstIpAddr text, SrcPort int, DstPort int, 
+LastUpdated timestamp, DeviceId int, Action int, AclRuleId int);
 ```
 
 ### Configuration
