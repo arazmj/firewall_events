@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"firewall_events/protobuf"
+	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gocql/gocql"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/tkanos/gonfig"
@@ -13,29 +15,34 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 
 
 type Configuration struct {
-	Brokers    []string;
-	Version    string;
-	Group      string;
-	Topics     string;
-	Oldest     bool;
-	Verbose    bool;
-	SaslUser   string;
-	SaslPassword string;
-	SaslEnable bool;
-	SaslHandshake bool;
+	Brokers              []string;
+	Version              string;
+	Group                string;
+	Topics               string;
+	Oldest               bool;
+	Verbose              bool;
+	SaslUser             string;
+	SaslPassword         string;
+	SaslEnable           bool;
+	SaslHandshake        bool;
+	CassandraConsistency string;
+	CassandraKeyspace    string;
+	CassandraUsername    string;
+	CassandraPassword    string;
 }
 
 var (
 	jsonConfig = Configuration{}
+	dbSession  *gocql.Session;
 )
 
 func init() {
-
 }
 
 func main() {
@@ -71,6 +78,23 @@ func main() {
 	saramaConfig.Net.SASL.Password = jsonConfig.SaslPassword
 	saramaConfig.Net.SASL.Enable = jsonConfig.SaslEnable
 	saramaConfig.Net.SASL.Handshake = jsonConfig.SaslHandshake
+
+	/**
+	 * Setup Cassandra connection
+	 */
+	cluster := gocql.NewCluster("localhost")
+	cluster.Keyspace = jsonConfig.CassandraKeyspace;
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: jsonConfig.CassandraUsername,
+		Password:jsonConfig.CassandraPassword}
+
+	cluster.Consistency = gocql.Quorum
+	if jsonConfig.CassandraConsistency == "LocalOne" {
+		cluster.Consistency = gocql.LocalOne
+	}
+	dbSession, _ = cluster.CreateSession()
+	defer dbSession.Close()
+
 
 	/**
 	 * Setup a new Sarama consumer group
@@ -139,10 +163,24 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		dstIp := make([]byte, 4)
 		binary.LittleEndian.PutUint32(dstIp, event.DstIpAddr)
 
+		strSrcIp := fmt.Sprintf("%d.%d.%d.%d", srcIp[0], srcIp[1], srcIp[2], srcIp[3])
+		strDstIp := fmt.Sprintf("%d.%d.%d.%d", dstIp[0], dstIp[1], dstIp[2], dstIp[3])
+
+		errDb := dbSession.Query(
+			`INSERT INTO fw_events (event_id, SrcIpAddr, DstIpAddr, SrcPort, DstPort, 
+				   LastUpdated, DeviceId, Action, AclRuleId) 
+                   VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, ?)`,
+			strSrcIp, strDstIp, event.SrcPort, event.DstPort,
+			time.Now(), event.DeviceId, event.Action, event.AclRuleId).Exec();
+
+		if  errDb != nil {
+			log.Fatal("Error inserting event record: ", err)
+		}
+
 		if jsonConfig.Verbose {
-			log.Printf("Src IP: %d.%d.%d.%d, Dst IP: %d.%d.%d.%d Src Port: %d, Dst Port: %d",
-				srcIp[0], srcIp[1], srcIp[2], srcIp[3],
-				dstIp[0], dstIp[1], dstIp[2], dstIp[3],
+			log.Printf("Src IP: %s, Dst IP: %s, Src Port: %d, Dst Port: %d",
+				strSrcIp,
+				strDstIp,
 				event.SrcPort, event.DstPort)
 			log.Printf("Rule ID: %d, Last Update: %s, Device ID: %d, Action ID: %d",
 				event.AclRuleId, ptypes.TimestampString(event.LastUpdated), event.DeviceId, event.Action)

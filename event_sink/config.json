@@ -8,5 +8,9 @@
   "SaslUser": "",
   "SaslPassword": "",
   "SaslEnable": false,
-  "SaslHandshake": true
+  "SaslHandshake": true,
+  "CassandraConsistency": "LocalOne",
+  "CassandraKeyspace": "tutorialspoint",
+  "CassandraUsername": "cassandra",
+  "CassandraPassword": "cassandra"
 }
