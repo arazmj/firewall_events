@@ -157,6 +157,9 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			log.Fatal("Unmarshaling error: ", err)
 		}
 
+		/*
+		*  Insert the event on Cassandra
+		*/
 		srcIp := make([]byte, 4)
 		binary.LittleEndian.PutUint32(srcIp, event.SrcIpAddr)
 
@@ -174,7 +177,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			time.Now(), event.DeviceId, event.Action, event.AclRuleId).Exec();
 
 		if  errDb != nil {
-			log.Fatal("Error inserting event record: ", err)
+			log.Fatal("Error inserting event record: ", errDb)
 		}
 
 		if jsonConfig.Verbose {
