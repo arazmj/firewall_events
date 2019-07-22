@@ -74,3 +74,32 @@ Casssandra username and password
   "CassandraUsername": "cassandra",
   "CassandraPassword": "cassandra"
 ```
+
+### Compile Protobuf file
+
+#### Install ProtoBuff Compiler (protoc)
+1. Download the appropriate release here: https://github.com/google/protobuf/releases
+2. Unzip the folder
+3. Enter the folder and run ./autogen.sh && ./configure && make
+4. If you run into this error: autoreconf: failed to run aclocal: No such file or directory, run brew 	install autoconf && brew install automake. And run the command from step 3 again.
+5. Then run these other commands. They should run without issues
+
+```
+$ make check
+$ sudo make install
+$ which protoc
+$ protoc --version
+```
+
+#### Compile ProtoBuff File
+
+```
+cd firewall_events/protobuf
+protoc --go_out=. *.proto
+```
+
+### Build Docker
+
+```
+docker build
+```	
